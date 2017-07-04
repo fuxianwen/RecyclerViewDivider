@@ -43,6 +43,12 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
     private int mOrientation;
     private final Rect mBounds = new Rect();
     private float mVerticalSpace;//水平间距
+    private boolean mDrawLastCloumnDiver;//设置最后一列是否展示分割线
+    private boolean mDrawFirstCloumnDiver;//第一列是否展示分割线
+    private boolean mDrawFirstRowDiver;//设置第一行是否展示分割线
+    private boolean mDrawLastRowDiver;//设置最后一行是否展示分割线
+    private int mDiverLeftSpace;//置分割线离左边的间距
+    private int mDiverRightSpace;//置分割线离右边边的间距
 
     private DividerItemDecoration(Builder builder) {
         mBuilder = builder;
@@ -52,6 +58,12 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
         mFirstDiverDraw = builder.mFirstDiverDraw;
         mLastDiverHeight = builder.mLastDiverHeight;
         mVerticalSpace = builder.mVerticalSpace;
+        mDrawLastCloumnDiver = builder.mDrawLastCloumnDiver;
+        mDrawFirstCloumnDiver = builder.mDrawFirstCloumnDiver;
+        mDrawFirstRowDiver = builder.mDrawFirstRowDiver;
+        mDrawLastRowDiver = builder.mDrawLastRowDiver;
+        mDiverLeftSpace = builder.mDiverLeftSpace;
+        mDiverRightSpace = builder.mDiverRightSpace;
     }
 
     @Override
@@ -90,30 +102,39 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
     @Override
     public void drawLinearVertical(Canvas canvas, RecyclerView parent) {
         canvas.save();
-        final int left;
-        final int right;
-        if (parent.getClipToPadding()) {
-            left = parent.getPaddingLeft();
-            right = parent.getWidth() - parent.getPaddingRight();
-            canvas.clipRect(left, parent.getPaddingTop(), right,
-                    parent.getHeight() - parent.getPaddingBottom());
-        } else {
-            left = 0;
-            right = parent.getWidth();
-        }
-
+        int left;
+        int right;
+        int bottom;
+        int top;
+//        if (parent.getClipToPadding()) {
+        left = parent.getPaddingLeft() + mDiverLeftSpace;
+        right = parent.getWidth() - parent.getPaddingRight() - mDiverRightSpace;
+//        canvas.clipRect(left, parent.getPaddingTop(), right,
+//                parent.getHeight() - parent.getPaddingBottom());
+//        } else {
+//            left = 0;
+//            right = parent.getWidth();
+//        }
         final int childCount = parent.getChildCount();
         for (int i = 0; i < childCount; i++) {
             final View child = parent.getChildAt(i);
             parent.getDecoratedBoundsWithMargins(child, mBounds);
-            final int bottom = mBounds.bottom + Math.round(ViewCompat.getTranslationY(child));
-            int top;
+            bottom = mBounds.bottom + Math.round(ViewCompat.getTranslationY(child));
+
             if (i == childCount - 1 && !mLastDiverDraw)
                 top = (int) (bottom - mLastDiverHeight);
             else
-                top = bottom - mDivider.getIntrinsicHeight();
-            mDivider.setBounds(left, top, right, bottom);
+                top = (int) (bottom - mDividerHeight);
+            mDivider.setBounds(left , top, right, bottom);
             mDivider.draw(canvas);
+            //如果列表顶部需要绘制分割线，并且是第一条数据
+            if (mFirstDiverDraw && i == 0) {
+                top = mBounds.top;
+                bottom = (int) (top + mDividerHeight);
+                mDivider.setBounds(left, top, right, bottom);
+                mDivider.draw(canvas);
+            }
+
         }
         canvas.restore();
     }
@@ -123,30 +144,40 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
     @Override
     public void drawLinearHorizontal(Canvas canvas, RecyclerView parent) {
         canvas.save();
-        final int top;
-        final int bottom;
-        if (parent.getClipToPadding()) {
-            top = parent.getPaddingTop();
-            bottom = parent.getHeight() - parent.getPaddingBottom();
-            canvas.clipRect(parent.getPaddingLeft(), top,
-                    parent.getWidth() - parent.getPaddingRight(), bottom);
-        } else {
-            top = 0;
-            bottom = parent.getHeight();
-        }
+        int top;
+        int bottom;
+        int right;
+        int left;
+//        if (parent.getClipToPadding()) {
+        top = parent.getPaddingTop() + mDiverRightSpace;
+        bottom = parent.getHeight() - parent.getPaddingBottom() - mDiverLeftSpace;
+//        canvas.clipRect(parent.getPaddingLeft(), top,
+//                parent.getWidth() - parent.getPaddingRight(), bottom);
+//        } else {
+//            top = 0;
+//            bottom = parent.getHeight();
+//        }
 
         final int childCount = parent.getChildCount();
         for (int i = 0; i < childCount; i++) {
             final View child = parent.getChildAt(i);
             parent.getLayoutManager().getDecoratedBoundsWithMargins(child, mBounds);
-            final int right = mBounds.right + Math.round(ViewCompat.getTranslationX(child));
-            int left;
+            right = mBounds.right + Math.round(ViewCompat.getTranslationX(child));
+
             if (i == childCount - 1 && !mLastDiverDraw)
                 left = (int) (right - mLastDiverHeight);
             else
-                left = right - mDivider.getIntrinsicWidth();
+                left = (int) (right - mDividerHeight);
             mDivider.setBounds(left, top, right, bottom);
             mDivider.draw(canvas);
+
+            //如果列表顶部需要绘制分割线，并且是第一条数据
+            if (mFirstDiverDraw && i == 0) {
+                right = mBounds.left;
+                left = (int) (right - parent.getPaddingLeft());
+                mDivider.setBounds(left, top, right, bottom);
+                mDivider.draw(canvas);
+            }
         }
         canvas.restore();
     }
@@ -188,39 +219,29 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
                 .getViewLayoutPosition();
         int childCount = parent.getAdapter().getItemCount();
         if (mOrientation == VERTICAL) {
-            //如果最后一条数据不绘制分割线 并且 第一条要绘制
-            if (!mLastDiverDraw && itemPosition == childCount - 1 && mFirstDiverDraw) {
-                outRect.set(0, (int)mDividerHeight, 0, (int)mLastDiverHeight);
+            //如果只有一条数据 最后一条数据不绘制，第一条要绘制
+            if (!mLastDiverDraw && childCount == 1 && mFirstDiverDraw) {
+                outRect.set(0, (int) mDividerHeight, 0, (int) mLastDiverHeight);
                 return;
             }
             //最后一条不绘制
             if (!mLastDiverDraw && itemPosition == childCount - 1) {
-                outRect.set(0, 0, 0, (int)mLastDiverHeight);
+                outRect.set(0, 0, 0, (int) mLastDiverHeight);
                 return;
             }
             //第一条绘制 并且 是第一条数据
             if (mFirstDiverDraw && itemPosition == 0) {
-                outRect.set(0, (int)mDividerHeight, 0,(int) mDividerHeight);
+                outRect.set(0, (int) mDividerHeight, 0, (int) mDividerHeight);
                 return;
             }
-            outRect.set(0, 0, 0, (int)mDividerHeight);
+            outRect.set(0, 0, 0, (int) mDividerHeight);
         } else {
-            //如果最后一条数据不绘制分割线 并且 第一条要绘制
-            if (!mLastDiverDraw && itemPosition == childCount - 1 && mFirstDiverDraw) {
-                outRect.set((int)mDividerHeight, 0, (int)mLastDiverHeight, 0);
-                return;
-            }
             //最后一条不绘制
             if (!mLastDiverDraw && itemPosition == childCount - 1) {
-                outRect.set(0, 0, (int)mLastDiverHeight, 0);
+                outRect.set(0, 0, (int) mLastDiverHeight, 0);
                 return;
             }
-            //第一条绘制 并且 是第一条数据
-            if (mFirstDiverDraw && itemPosition == 0) {
-                outRect.set((int)mDividerHeight, 0, (int)mDividerHeight, 0);
-                return;
-            }
-            outRect.set(0, 0, (int)mDividerHeight, 0);
+            outRect.set(0, 0, (int) mDividerHeight, 0);
         }
     }
 
@@ -239,17 +260,31 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
             int right;
             top = child.getTop() - params.topMargin;
             bottom = child.getBottom() + params.bottomMargin;
-            left = child.getRight() + params.rightMargin;
             if (mOrientation == VERTICAL) {
-                if (isLastColum(parent, i, getSpanCount(parent), childCount))
+
+                if (mDrawFirstCloumnDiver && isFirstColum(parent, i, getSpanCount(parent), childCount)) {
+                    right = child.getLeft() + params.leftMargin;
+                    left = (int) (right - mDividerHeight);
+                    mDivider.setBounds(left, top, right, bottom);
+                    mDivider.draw(canvas);
+                }
+                left = child.getRight() + params.rightMargin;
+                if (!mDrawLastCloumnDiver && isLastColum(parent, i, getSpanCount(parent), childCount))
                     right = left;
                 else
-                    right = left + (int)mDividerHeight;
+                    right = left + (int) mDividerHeight;
             } else {
-                if (!mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
-                    right = left + (int)mLastDiverHeight;
+                if (mFirstDiverDraw || mDrawFirstRowDiver && isFirstRaw(parent, i, getSpanCount(parent), childCount)) {
+                    left = (int) (child.getLeft() - mVerticalSpace);
+                    right = child.getLeft();
+                    mDivider.setBounds(left, top, right, bottom);
+                    mDivider.draw(canvas);
+                }
+                left = child.getRight() + params.rightMargin;
+                if (!mDrawLastRowDiver && !mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
+                    right = left + (int) mLastDiverHeight;
                 else
-                    right = left + (int)mDividerHeight;
+                    right = left + (int) mVerticalSpace;
             }
             mDivider.setBounds(left, top, right, bottom);
             mDivider.draw(canvas);
@@ -271,27 +306,49 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
             int bottom;
 
             left = child.getLeft() - params.leftMargin;
-            top = child.getBottom() + params.bottomMargin;
             if (mOrientation == VERTICAL) {
-                if (isLastColum(parent, i, getSpanCount(parent), childCount))
+                if (!mDrawLastCloumnDiver && isLastColum(parent, i, getSpanCount(parent), childCount))
                     right = child.getRight() + params.rightMargin;
                 else
                     right = (int) (child.getRight() + params.rightMargin + mDividerHeight);
 
-                if (!mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
+                if (mDrawFirstCloumnDiver && isFirstColum(parent, i, getSpanCount(parent), childCount)) {
+                    left = (int) (left - mDividerHeight);
+                }
+                if (mDrawFirstRowDiver || mFirstDiverDraw && isFirstRaw(parent, i, getSpanCount(parent), childCount)) {
+                    top = child.getTop();
+                    bottom = (int) (top - mVerticalSpace);
+                    mDivider.setBounds(left, top, right, bottom);
+                    mDivider.draw(canvas);
+                }
+                top = child.getBottom() + params.bottomMargin;
+                if (!mDrawLastRowDiver && !mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
                     bottom = (int) (top + mLastDiverHeight);
                 else
                     bottom = (int) (top + mVerticalSpace);
+
             } else {
-                if (!mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
+                if (!mDrawLastRowDiver && !mLastDiverDraw && isLastRaw(parent, i, getSpanCount(parent), childCount))
                     right = (int) (child.getRight() + params.rightMargin + mLastDiverHeight);
                 else
-                    right = (int) (child.getRight() + params.rightMargin + mDividerHeight);
+                    right = (int) (child.getRight() + params.rightMargin + mVerticalSpace);
 
-                if (isLastColum(parent, i, getSpanCount(parent), childCount))
+                if (mFirstDiverDraw || mDrawFirstRowDiver && isFirstRaw(parent, i, getSpanCount(parent), childCount))
+                    left = (int) (left - mVerticalSpace);
+
+                if (mDrawFirstCloumnDiver && isFirstColum(parent, i, getSpanCount(parent), childCount)) {
+                    top = child.getTop();
+                    bottom = (int) (top - mDividerHeight);
+                    mDivider.setBounds(left, top, right, bottom);
+                    mDivider.draw(canvas);
+                }
+                top = child.getBottom() + params.bottomMargin;
+                if (!mDrawLastCloumnDiver && isLastColum(parent, i, getSpanCount(parent), childCount))
                     bottom = top;
-                else
-                    bottom = (int) (top + mVerticalSpace);
+                else {
+                    bottom = (int) (top + mDividerHeight);
+
+                }
 
             }
             mDivider.setBounds(left, top, right, bottom);
@@ -338,7 +395,7 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
 
     @Override
     public boolean isFirstRaw(RecyclerView parent, int pos, int spanCount, int childCount) {
-        return (pos * 1.0f) / spanCount <= 1;
+        return (pos * 1.0f) / spanCount < 1;
 
     }
 
@@ -359,6 +416,8 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
         bottom = (int) mVerticalSpace;
         if (!mLastDiverDraw && isLastRaw(parent, itemPosition, spanCount, childCount))
             bottom = (int) mLastDiverHeight;
+        if (mFirstDiverDraw && isFirstRaw(parent, itemPosition, spanCount, childCount))
+            top = (int) mVerticalSpace;
         outRect.set(left, top, right, bottom);
     }
 
@@ -376,7 +435,7 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
         if (isFirstColum(parent, itemPosition, spanCount, childCount)) {
             top = 0;
             bottom = (int) (mDividerHeight / spanCount * (spanCount - 1));
-        } else if (isLastColum(parent, itemPosition,  spanCount, childCount)) {
+        } else if (isLastColum(parent, itemPosition, spanCount, childCount)) {
             top = (int) (mDividerHeight / spanCount * (spanCount - 1));
             bottom = 0;
         } else {
@@ -384,7 +443,7 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
             bottom = (int) (mDividerHeight - (column + 1) * mDividerHeight / spanCount);
         }
         right = (int) mVerticalSpace;
-        if (!mLastDiverDraw && isLastRaw(parent, itemPosition,  spanCount, childCount))
+        if (!mLastDiverDraw && isLastRaw(parent, itemPosition, spanCount, childCount))
             right = (int) mLastDiverHeight;
         outRect.set(left, top, right, bottom);
     }
@@ -403,6 +462,12 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
          */
         private Context mContext;
         private float mVerticalSpace;//水平间距
+        private boolean mDrawLastCloumnDiver;//设置最后一列是否展示分割线
+        private boolean mDrawFirstCloumnDiver;//第一列是否展示分割线
+        private boolean mDrawFirstRowDiver;//设置第一行是否展示分割线
+        private boolean mDrawLastRowDiver;//设置最后一行是否展示分割线
+        private int mDiverLeftSpace;//置分割线离左边的间距
+        private int mDiverRightSpace;//置分割线离右边边的间距
 
         public Builder(Context context) {
             final TypedArray a = context.obtainStyledAttributes(ATTRS);
@@ -438,6 +503,28 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
         }
 
         /**
+         * 设置分割线离左边的间距 仅仅支持 LinearLayoutManager类型
+         *
+         * @param space
+         * @return
+         */
+        public Builder setDiverLeftSpace(int space) {
+            mDiverLeftSpace = space;
+            return this;
+        }
+
+        /**
+         * 设置分割线离右边边的间距 仅仅支持 LinearLayoutManager类型
+         *
+         * @param space
+         * @return
+         */
+        public Builder setDiverRightSpace(int space) {
+            mDiverRightSpace = space;
+            return this;
+        }
+
+        /**
          * 设置是否绘制最后一条数据分割线
          *
          * @param drawLastDiver true 绘制  false不绘制  默认false
@@ -465,6 +552,8 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
 
         /**
          * 设置头部是否绘制数据分割线
+         * 只支持VERTICAL情况
+         * HORIZONTAL可以配合padding设置是否展示头部
          *
          * @param drawFirstDiver true 绘制  false不绘制  默认false
          * @return
@@ -503,8 +592,52 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration implement
          * @param verticalSpace
          * @return
          */
-        public Builder setVerticalSpace(int verticalSpace) {
+        public Builder setVerticalSpace(float verticalSpace) {
             mVerticalSpace = verticalSpace;
+            return this;
+        }
+
+        /**
+         * 设置宫格类型最后一列是否展示分割线 配合paddingright 使用
+         *
+         * @param drawRightLastDiver
+         * @return
+         */
+        public Builder setDrawLastCloumnDiver(boolean drawRightLastDiver) {
+            mDrawLastCloumnDiver = drawRightLastDiver;
+            return this;
+        }
+
+        /**
+         * 设置宫格类型第一列是否展示分割线 配合paddingleft 使用
+         *
+         * @param drawLeftFirstDiver
+         * @return
+         */
+        public Builder setDrawFirstCloumnDiver(boolean drawLeftFirstDiver) {
+            mDrawFirstCloumnDiver = drawLeftFirstDiver;
+            return this;
+        }
+
+        /**
+         * 设置宫格类型第一行是否展示分割线 配合paddingleft 使用
+         *
+         * @param drawLeftFirstDiver
+         * @return
+         */
+        public Builder setDrawFirstRowDiver(boolean drawLeftFirstDiver) {
+            mDrawFirstRowDiver = drawLeftFirstDiver;
+            return this;
+        }
+
+        /**
+         * 设置宫格类型第一行是否展示分割线 配合paddingleft 使用
+         *
+         * @param drawLeftFirstDiver
+         * @return
+         */
+        public Builder setDrawLastRowDiver(boolean drawLeftFirstDiver) {
+            mDrawLastRowDiver = drawLeftFirstDiver;
             return this;
         }
 
