@@ -7,7 +7,7 @@
 - home_recycler.addItemDecoration(DividerItemDecoration.Builder(  
                     ContextCompat.getColor(mContext, R.color.colorAccent), height)  
                     .setDiverLeftSpace(UIUtils.dpToPx(10f).toInt())  
-                   .setDiverRightSpace(UIUtils.dpToPx(10f).toInt())  
-                   .setDrawLastDiver(true)  
+                    .setDiverRightSpace(UIUtils.dpToPx(10f).toInt())  
+                    .setDrawLastDiver(true)  
                     .setDrawFirstDiver(true)  
-                      .build())                 
+                    .build())                 
