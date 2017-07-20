@@ -5,9 +5,9 @@
 - LinearLayoutManager 支持设置分割线左右边距  
 - GridLayoutManager   支持设置四周是否都显示分割线 请配合padding使用
 - <pre><code>home_recycler.addItemDecoration(DividerItemDecoration.Builder(  
-                    >ContextCompat.getColor(mContext, R.color.colorAccent), height)  
-                    >.setDiverLeftSpace(UIUtils.dpToPx(10f).toInt())  
-                    >.setDiverRightSpace(UIUtils.dpToPx(10f).toInt())  
-                    >.setDrawLastDiver(true)  
-                    >.setDrawFirstDiver(true)  
-                    >.build())</code></pre>                 
+                    ContextCompat.getColor(mContext, R.color.colorAccent), height)  
+                    .setDiverLeftSpace(UIUtils.dpToPx(10f).toInt())  
+                    .setDiverRightSpace(UIUtils.dpToPx(10f).toInt())  
+                    .setDrawLastDiver(true)  
+                    .setDrawFirstDiver(true)  
+                    .build())</code></pre>                 
